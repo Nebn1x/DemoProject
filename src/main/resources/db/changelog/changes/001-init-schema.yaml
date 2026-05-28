@@ -1,0 +1,266 @@
+databaseChangeLog:
+
+  # ============================================
+  # 1. Розширення UUID
+  # ============================================
+  - changeSet:
+      id: 001-enable-uuid-extension
+      author: mockit
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+  # ============================================
+  # 2. Таблиця users
+  # ============================================
+  - changeSet:
+      id: 002-create-users-table
+      author: mockit
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: uuid_generate_v4()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_hash
+                  type: VARCHAR(12)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: role
+                  type: VARCHAR(20)
+                  defaultValue: USER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: users
+            indexName: idx_users_email
+            columns:
+              - column:
+                  name: email
+
+        - createIndex:
+            tableName: users
+            indexName: idx_users_user_hash
+            columns:
+              - column:
+                  name: user_hash
+
+  # ============================================
+  # 3. Таблиця mock_endpoints
+  # ============================================
+  - changeSet:
+      id: 003-create-mock-endpoints-table
+      author: mockit
+      changes:
+        - createTable:
+            tableName: mock_endpoints
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: uuid_generate_v4()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_endpoints_user
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: method
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: path
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: response_body
+                  type: TEXT
+              - column:
+                  name: response_headers
+                  type: JSONB
+              - column:
+                  name: response_status
+                  type: INTEGER
+                  defaultValueNumeric: 200
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content_type
+                  type: VARCHAR(100)
+                  defaultValue: application/json
+                  constraints:
+                    nullable: false
+              - column:
+                  name: delay_ms
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        # Унікальність: один користувач не може мати два однакові ендпоінти
+        - addUniqueConstraint:
+            tableName: mock_endpoints
+            columnNames: user_id, method, path
+            constraintName: uq_endpoint_user_method_path
+
+        # CHECK constraints
+        - sql:
+            sql: ALTER TABLE mock_endpoints ADD CONSTRAINT chk_method CHECK (method IN ('GET','POST','PUT','PATCH','DELETE'));
+        - sql:
+            sql: ALTER TABLE mock_endpoints ADD CONSTRAINT chk_status CHECK (response_status BETWEEN 100 AND 599);
+        - sql:
+            sql: ALTER TABLE mock_endpoints ADD CONSTRAINT chk_delay CHECK (delay_ms >= 0 AND delay_ms <= 30000);
+
+        # Індекси
+        - createIndex:
+            tableName: mock_endpoints
+            indexName: idx_endpoints_user_id
+            columns:
+              - column:
+                  name: user_id
+
+        - createIndex:
+            tableName: mock_endpoints
+            indexName: idx_endpoints_lookup
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: method
+              - column:
+                  name: path
+
+        - sql:
+            sql: CREATE INDEX idx_endpoints_expires ON mock_endpoints(expires_at) WHERE expires_at IS NOT NULL;
+
+  # ============================================
+  # 4. Таблиця request_logs
+  # ============================================
+  - changeSet:
+      id: 004-create-request-logs-table
+      author: mockit
+      changes:
+        - createTable:
+            tableName: request_logs
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: uuid_generate_v4()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: endpoint_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_logs_endpoint
+                    references: mock_endpoints(id)
+                    deleteCascade: true
+              - column:
+                  name: timestamp
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_method
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_path
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_headers
+                  type: JSONB
+              - column:
+                  name: request_body
+                  type: TEXT
+              - column:
+                  name: client_ip
+                  type: VARCHAR(45)
+              - column:
+                  name: user_agent
+                  type: VARCHAR(500)
+              - column:
+                  name: response_status
+                  type: INTEGER
+              - column:
+                  name: latency_ms
+                  type: INTEGER
+
+        - createIndex:
+            tableName: request_logs
+            indexName: idx_logs_endpoint_time
+            columns:
+              - column:
+                  name: endpoint_id
+              - column:
+                  name: timestamp
+                  descending: true
+
+        - createIndex:
+            tableName: request_logs
+            indexName: idx_logs_timestamp
+            columns:
+              - column:
+                  name: timestamp
