@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: mock-it-backend
+
+  # PostgreSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mockit
+    username: mockit
+    password: mockit_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  # JPA / Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+
+  # Liquibase міграції
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: public
+
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    org.example: DEBUG
+    org.springframework.web: INFO
+    liquibase: INFO
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+
+app:
+  base-url: http://localhost:8080
+  jwt:
+    secret: change-me-in-production-this-must-be-at-least-256-bits-long-secret-key
+    expiration-ms: 86400000
+  mock:
+    max-body-size-kb: 1024
+    default-ttl-hours: 168
