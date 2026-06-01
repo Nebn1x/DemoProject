@@ -12,6 +12,8 @@ import org.example.exception.EndpointNotFoundException;
 import org.example.repository.MockEndpointRepository;
 import org.example.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -73,7 +75,16 @@ public class MockEndpointService {
         return EndpointResponse.from(endpoint, baseUrl);
     }
 
+    @Cacheable(value = "endpoints", key = "#userHash + ':' + #method + ':' + #path")
+    public MockEndpoint findByUserHashAndMethodAndPath(String userHash, String method, String path) {
+        return endpointRepository.findByUserHashAndMethodAndPath(userHash, method, path)
+                .orElseThrow(() -> new EndpointNotFoundException(
+                        "Ендпоінт не знайдений: " + method + " " + path
+                ));
+    }
+
     @Transactional
+    @CacheEvict(value = "endpoints", allEntries = true)
     public EndpointResponse update(UUID userId, UUID endpointId, UpdateEndpointRequest req) {
         MockEndpoint endpoint = findOwnedEndpoint(userId, endpointId);
 
@@ -91,6 +102,7 @@ public class MockEndpointService {
     }
 
     @Transactional
+    @CacheEvict(value = "endpoints", allEntries = true)
     public void delete(UUID userId, UUID endpointId) {
         MockEndpoint endpoint = findOwnedEndpoint(userId, endpointId);
         endpointRepository.delete(endpoint);

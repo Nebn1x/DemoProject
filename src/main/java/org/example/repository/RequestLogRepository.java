@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -31,4 +32,7 @@ public interface RequestLogRepository extends JpaRepository<RequestLog, UUID> {
     @Modifying
     @Query("DELETE FROM RequestLog l WHERE l.timestamp < :before")
     int deleteOlderThan(@Param("before") LocalDateTime before);
+
+    @Query("SELECT r FROM RequestLog r WHERE r.endpoint.user.id = :userId")
+    List<RequestLog> findAllByUserId(@Param("userId") UUID userId);
 }
