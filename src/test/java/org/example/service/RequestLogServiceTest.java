@@ -1,10 +1,10 @@
-package service;
+package org.example.service;
 
 import org.example.entity.MockEndpoint;
 import org.example.entity.RequestLog;
 import org.example.repository.MockEndpointRepository;
 import org.example.repository.RequestLogRepository;
-import org.example.service.RequestLogService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,9 +15,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("RequestLogService")
 class RequestLogServiceTest {
 
     @Mock
@@ -30,10 +32,12 @@ class RequestLogServiceTest {
     private RequestLogService requestLogService;
 
     @Test
+    @DisplayName("зберігає лог, коли ендпоінт існує")
     void shouldSaveLogWhenEndpointExists() {
         String userHash = "123hash";
         String method = "POST";
-        String path = "/mock/123hash/data";
+        // path БЕЗ префікса /mock/{hash} - так зберігається MockEndpoint.path
+        String path = "/data";
 
         MockEndpoint fakeEndpoint = new MockEndpoint();
         fakeEndpoint.setId(UUID.randomUUID());
@@ -47,6 +51,7 @@ class RequestLogServiceTest {
     }
 
     @Test
+    @DisplayName("не падає, коли ендпоінт не знайдено")
     void shouldNotThrowExceptionWhenEndpointNotFound() {
         when(endpointRepository.findByUserHashAndMethodAndPath(anyString(), anyString(), anyString()))
                 .thenReturn(Optional.empty());
