@@ -70,6 +70,10 @@ logging:
 
 app:
   base-url: http://localhost:8080
+  rate-limit:
+    enabled: true
+    per-endpoint-per-minute: 60
+    per-user-per-minute: 1000
   jwt:
     secret: change-me-in-production-this-must-be-at-least-256-bits-long-secret-key
     expiration-ms: 86400000

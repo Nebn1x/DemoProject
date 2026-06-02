@@ -1,4 +1,4 @@
-package service;
+package org.example.service;
 
 import org.example.dto.auth.AuthResponse;
 import org.example.dto.auth.LoginRequest;

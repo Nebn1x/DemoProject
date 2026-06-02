@@ -1,9 +1,9 @@
-package aspect;
+package org.example.aop.aspect;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.example.aop.aspect.LoggingAspect;
 import org.example.service.RequestLogService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("LoggingAspect")
 class LoggingAspectTest {
 
     @Mock
@@ -32,6 +33,7 @@ class LoggingAspectTest {
     private LoggingAspect loggingAspect;
 
     @Test
+    @DisplayName("логує запит і витягує userHash + шлях без префікса")
     void shouldLogRequestAndExtractHashSuccessfully() throws Throwable {
         String testUrl = "/mock/a1b2c3d4/api/users";
         when(request.getRequestURI()).thenReturn(testUrl);
@@ -45,10 +47,11 @@ class LoggingAspectTest {
 
         verify(joinPoint).proceed();
 
+        // Аспект тепер передає шлях БЕЗ префікса /mock/{hash} - тобто /api/users
         verify(requestLogService).saveLogAsync(
                 eq("a1b2c3d4"),
                 eq("GET"),
-                eq(testUrl),
+                eq("/api/users"),
                 eq(200),
                 anyInt()
         );

@@ -1,4 +1,4 @@
-package service;
+package org.example.service;
 
 import org.example.dto.endpoint.CreateEndpointRequest;
 import org.example.dto.endpoint.EndpointResponse;
@@ -9,7 +9,6 @@ import org.example.exception.EndpointAlreadyExistsException;
 import org.example.exception.EndpointNotFoundException;
 import org.example.repository.MockEndpointRepository;
 import org.example.repository.UserRepository;
-import org.example.service.MockEndpointService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
