@@ -2,10 +2,12 @@ package org.example.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.dto.logs.RequestLogDto;
 import org.example.entity.MockEndpoint;
 import org.example.entity.RequestLog;
 import org.example.repository.MockEndpointRepository;
 import org.example.repository.RequestLogRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ public class RequestLogService {
 
     private final RequestLogRepository requestLogRepository;
     private final MockEndpointRepository endpointRepository;
+    private final SimpMessagingTemplate simpMessagingTemplate;
 
     /**
      * Асинхронний запис логу виклику mock.
@@ -44,7 +47,15 @@ public class RequestLogService {
                     .latencyMs(latencyMs)
                     .build();
 
-            requestLogRepository.save(requestLog);
+            requestLog = requestLogRepository.save(requestLog);
+
+            RequestLogDto dto = RequestLogDto.from(requestLog);
+            simpMessagingTemplate.convertAndSend("/topic/logs/", dto);
+
+            if (endpoint.getUser() != null) {
+                simpMessagingTemplate.convertAndSendToUser(endpoint.getUser().getId().toString(), "/queue/logs", dto);
+            }
+
         } catch (Exception e) {
             log.error("Помилка запису логу {} {}: {}", method, path, e.getMessage());
         }
