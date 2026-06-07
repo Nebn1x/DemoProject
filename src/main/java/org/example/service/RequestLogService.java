@@ -22,8 +22,8 @@ public class RequestLogService {
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     /**
-     * Асинхронний запис логу виклику mock.
-     * path тут — БЕЗ префікса /mock/{userHash}, як зберігається MockEndpoint.path.
+     * Асинхронний запис логу виклику mock + пуш у WebSocket.
+     * path - БЕЗ префікса /mock/{userHash}.
      */
     @Async
     @Transactional
@@ -34,7 +34,6 @@ public class RequestLogService {
                     .orElse(null);
 
             if (endpoint == null) {
-                // Викликали неіснуючий mock — логувати нема до чого прив'язати, пропускаємо
                 log.debug("Лог пропущено: ендпоінт {} {} (hash={}) не знайдено", method, path, userHash);
                 return;
             }
@@ -49,12 +48,9 @@ public class RequestLogService {
 
             requestLog = requestLogRepository.save(requestLog);
 
+            // Пуш у реальному часі підписникам конкретного ендпоінта
             RequestLogDto dto = RequestLogDto.from(requestLog);
-            simpMessagingTemplate.convertAndSend("/topic/logs/", dto);
-
-            if (endpoint.getUser() != null) {
-                simpMessagingTemplate.convertAndSendToUser(endpoint.getUser().getId().toString(), "/queue/logs", dto);
-            }
+            simpMessagingTemplate.convertAndSend("/topic/logs/" + endpoint.getId(), dto);
 
         } catch (Exception e) {
             log.error("Помилка запису логу {} {}: {}", method, path, e.getMessage());

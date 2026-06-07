@@ -22,15 +22,15 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
+
     private final JwtService jwtService;
-    private final UserRepository userRepository; // додати
+    private final UserRepository userRepository;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            // Спробуємо отримати токен з різних місць
             String authHeader = accessor.getFirstNativeHeader("Authorization");
             if (authHeader == null) {
                 authHeader = accessor.getFirstNativeHeader("authorization");
@@ -39,30 +39,23 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 authHeader = accessor.getFirstNativeHeader("token");
             }
 
-            log.info("Auth header: {}", authHeader); // для дебагу
-
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-
                 if (jwtService.isTokenValid(token)) {
-                    var userId = jwtService.extractUserId(token);
-                    var authorities = getUserAuthorities(userId);
-
+                    UUID userId = jwtService.extractUserId(token);
+                    Collection<? extends GrantedAuthority> authorities = getUserAuthorities(userId);
                     Authentication authentication = new UsernamePasswordAuthenticationToken(
-                            userId.toString(),
-                            null,
-                            authorities
-                    );
-
+                            userId.toString(), null, authorities);
                     accessor.setUser(authentication);
-                    log.info("User authenticated: {}", userId); // для дебагу
+                    log.debug("WS authenticated: {}", userId);
                 } else {
-                    log.warn("Invalid token");
+                    log.warn("WS: невалідний токен");
                 }
             } else {
-                log.warn("No Authorization header found");
+                log.warn("WS: немає Authorization header");
             }
         }
+
         return message;
     }
 
