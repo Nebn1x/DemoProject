@@ -39,3 +39,13 @@ build/
 /.idea/dataSources.xml
 /.idea/encodings.xml
 /.idea/misc.xml
+
+# Frontend
+/frontend/node_modules/
+/frontend/dist/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+*.env

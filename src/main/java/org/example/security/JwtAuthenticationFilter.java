@@ -40,7 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 String email = jwtService.extractEmail(token);
 
-                // Підвантажуємо UserDetails з БД та ставимо в SecurityContext
                 if (SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
                     UsernamePasswordAuthenticationToken auth =
@@ -66,13 +65,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
-    /**
-     * Не запускати фільтр для публічних URL — економія БД-запитів.
-     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/api/v1/auth/")
+        return path.equals("/api/v1/auth/login")
+                || path.equals("/api/v1/auth/register")
                 || path.startsWith("/mock/")
                 || path.startsWith("/actuator/")
                 || path.startsWith("/swagger-ui")
