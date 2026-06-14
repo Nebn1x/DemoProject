@@ -1,12 +1,12 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import type { ReactNode } from 'react';
 
 /**
  * Обгортка для сторінок, які потребують авторизації.
  * Якщо не залогінений - кидає на /login.
+ * Рендерить вкладені маршрути через <Outlet />.
  */
-export default function ProtectedRoute({ children }: { children: ReactNode }) {
+export default function ProtectedRoute() {
     const { isAuthenticated, loading } = useAuth();
 
     if (loading) {
@@ -21,5 +21,5 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
         return <Navigate to="/login" replace />;
     }
 
-    return <>{children}</>;
+    return <Outlet />;
 }
