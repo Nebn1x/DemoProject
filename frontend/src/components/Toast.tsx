@@ -1,90 +1,54 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
-interface ToastProps {
+interface ToastItem {
+    id: string;
     message: string;
-    type?: ToastType;
-    duration?: number;
-    onClose?: () => void;
+    type: ToastType;
 }
 
-export function Toast({ message, type = 'info', duration = 3000, onClose }: ToastProps) {
-    const [isVisible, setIsVisible] = useState(true);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsVisible(false);
-            onClose?.();
-        }, duration);
-
-        return () => clearTimeout(timer);
-    }, [duration, onClose]);
-
-    if (!isVisible) return null;
-
-    const bgColor = {
-        success: 'bg-green-500',
-        error: 'bg-red-500',
-        info: 'bg-blue-500',
-    }[type];
-
-    const icon = {
-        success: '✓',
-        error: '✕',
-        info: 'ℹ',
-    }[type];
-
-    return (
-        <div
-            className={`fixed bottom-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300`}
-        >
-            <span className="font-bold text-lg">{icon}</span>
-            <p className="text-sm">{message}</p>
-        </div>
-    );
-}
-
-// Toast Container для управління кількома toast'ами
 interface ToastContextType {
-    toasts: Array<{ id: string; message: string; type: ToastType }>;
     addToast: (message: string, type?: ToastType) => void;
-    removeToast: (id: string) => void;
 }
 
-export const ToastContext = React.createContext<ToastContextType | undefined>(undefined);
+const ToastContext = React.createContext<ToastContextType | undefined>(undefined);
+
+const STYLES: Record<ToastType, { bg: string; icon: string }> = {
+    success: { bg: 'bg-green-500', icon: '✓' },
+    error: { bg: 'bg-red-500', icon: '✕' },
+    info: { bg: 'bg-blue-500', icon: 'ℹ' },
+};
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-    const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
+    const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-    const addToast = (message: string, type: ToastType = 'info') => {
-        const id = Date.now().toString();
+    const removeToast = useCallback((id: string) => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, []);
+
+    const addToast = useCallback((message: string, type: ToastType = 'info') => {
+        const id = Date.now().toString() + Math.random().toString(36).slice(2);
         setToasts((prev) => [...prev, { id, message, type }]);
         setTimeout(() => removeToast(id), 3000);
-    };
-
-    const removeToast = (id: string) => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-    };
+    }, [removeToast]);
 
     return (
-        <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+        <ToastContext.Provider value={{ addToast }}>
             {children}
             <div className="fixed bottom-4 right-4 z-50 space-y-2">
-                {toasts.map((toast) => (
-                    <div
-                        key={toast.id}
-                        className={`${
-                            toast.type === 'success'
-                                ? 'bg-green-500'
-                                : toast.type === 'error'
-                                    ? 'bg-red-500'
-                                    : 'bg-blue-500'
-                        } text-white px-4 py-3 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300`}
-                    >
-                        {toast.message}
-                    </div>
-                ))}
+                {toasts.map((toast) => {
+                    const style = STYLES[toast.type];
+                    return (
+                        <div
+                            key={toast.id}
+                            className={`${style.bg} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300`}
+                        >
+                            <span className="font-bold text-lg">{style.icon}</span>
+                            <p className="text-sm">{toast.message}</p>
+                        </div>
+                    );
+                })}
             </div>
         </ToastContext.Provider>
     );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface ModalProps {
     isOpen: boolean;
@@ -23,6 +23,16 @@ export function Modal({
                       }: ModalProps) {
     const [isLoading, setIsLoading] = React.useState(false);
 
+    // Esc закриває модалку
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !isLoading) onCancel();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isOpen, isLoading, onCancel]);
+
     if (!isOpen) return null;
 
     const handleConfirm = async () => {
@@ -39,8 +49,15 @@ export function Modal({
         : 'bg-blue-600 hover:bg-blue-700';
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        // клік на фон (поза вікном) закриває модалку
+        <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
+            onClick={() => !isLoading && onCancel()}
+        >
+            <div
+                className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+                onClick={(e) => e.stopPropagation()} // клік всередині не закриває
+            >
                 <div className="px-6 py-4 border-b border-slate-200">
                     <h2 className="text-lg font-bold text-slate-800">{title}</h2>
                 </div>
