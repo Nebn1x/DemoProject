@@ -7,9 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker": "cd .. && docker compose up -d",
+    "backend": "cd .. && mvnw.cmd spring-boot:run",
+    "start:all": "npm run docker && concurrently -k -n \"BACK,FRONT\" -c \"blue,green\" \"npm run backend\" \"npm run dev\""
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@stomp/stompjs": "^7.3.0",
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.17.0",
@@ -26,6 +30,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/sockjs-client": "^1.5.4",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^10.0.3",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { ToastProvider } from './components/Toast';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -18,6 +18,8 @@ function App() {
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/" element={<Dashboard />} />
                         </Route>
+                        {/* невідомі шляхи - на головну (щоб не було білих сторінок) */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Router>
             </AuthProvider>

@@ -23,4 +23,13 @@ export const endpointsApi = {
     // Видалити ендпоінт
     delete: (id: string) =>
         api.delete<void>(`/api/v1/endpoints/${id}`),
+
+    // Тест: викликати mock-URL і повернути відповідь (статус + тіло)
+    test: async (endpoint: MockEndpoint) => {
+        const start = performance.now();
+        const res = await fetch(endpoint.fullUrl, { method: endpoint.method });
+        const latency = Math.round(performance.now() - start);
+        const body = await res.text();
+        return { status: res.status, body, latency };
+    },
 };

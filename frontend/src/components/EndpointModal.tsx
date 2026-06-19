@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
-import type { CreateEndpointRequest } from '../types';
+import type { CreateEndpointRequest, MockEndpoint } from '../types';
+import JsonEditor from './JsonEditor';
 
 interface CreateEndpointModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: CreateEndpointRequest) => Promise<void>;
+    onSubmit: (data: CreateEndpointRequest) => Promise<MockEndpoint | void>;
 }
 
 const initialForm: CreateEndpointRequest = {
@@ -20,6 +21,25 @@ const initialForm: CreateEndpointRequest = {
 export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: CreateEndpointModalProps) {
     const [form, setForm] = useState<CreateEndpointRequest>(initialForm);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [createdUrl, setCreatedUrl] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+    const pathInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isOpen && !createdUrl) {
+            setTimeout(() => pathInputRef.current?.focus(), 50);
+        }
+    }, [isOpen, createdUrl]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !isSubmitting) handleClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, isSubmitting]);
 
     if (!isOpen) return null;
 
@@ -27,8 +47,12 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await onSubmit(form);
-            setForm(initialForm);
+            const result = await onSubmit(form);
+            if (result && 'fullUrl' in result) {
+                setCreatedUrl(result.fullUrl);
+            } else {
+                handleClose();
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -36,12 +60,66 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
 
     const handleClose = () => {
         setForm(initialForm);
+        setCreatedUrl(null);
+        setCopied(false);
         onClose();
     };
 
+    const handleCopy = () => {
+        if (createdUrl) {
+            navigator.clipboard.writeText(createdUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    // екран що все ок
+    if (createdUrl) {
+        return (
+            <div
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                onClick={handleClose}
+            >
+                <div
+                    className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="text-center mb-4">
+                        <div className="text-3xl mb-2">✓</div>
+                        <h2 className="text-lg font-bold text-slate-800">Ендпоінт створено!</h2>
+                        <p className="text-sm text-slate-500">Ваш mock-URL готовий до використання</p>
+                    </div>
+
+                    <div className="bg-slate-100 rounded p-3 mb-4 flex items-center gap-2">
+                        <code className="text-sm text-slate-700 flex-1 break-all">{createdUrl}</code>
+                        <button
+                            onClick={handleCopy}
+                            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition whitespace-nowrap"
+                        >
+                            {copied ? '✓ Скопійовано' : '📋 Копіювати'}
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={handleClose}
+                        className="w-full px-4 py-2 text-sm bg-slate-800 text-white rounded hover:bg-slate-900 transition"
+                    >
+                        Готово
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+        <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={handleClose}
+        >
+            <div
+                className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <h2 className="text-lg font-bold text-slate-800 mb-4">Новий ендпоінт</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="flex gap-4">
@@ -73,6 +151,7 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Шлях</label>
                         <input
+                            ref={pathInputRef}
                             type="text"
                             placeholder="/api/example"
                             required
@@ -92,16 +171,10 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Response Body</label>
-                        <textarea
-                            value={form.responseBody}
-                            onChange={(e) => setForm({ ...form, responseBody: e.target.value })}
-                            rows={4}
-                            placeholder='{"message": "ok"}'
-                            className="w-full px-2 py-2 border border-slate-300 rounded text-sm font-mono"
-                        />
-                    </div>
+                    <JsonEditor
+                        value={form.responseBody || ''}
+                        onChange={(val) => setForm({ ...form, responseBody: val })}
+                    />
 
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Затримка (мс)</label>

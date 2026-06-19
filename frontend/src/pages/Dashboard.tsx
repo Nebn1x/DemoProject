@@ -5,6 +5,14 @@ import type { MockEndpoint, CreateEndpointRequest } from '../types';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import CreateEndpointModal from '../components/EndpointModal';
+import { TableSkeleton } from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
+
+interface TestResult {
+    status: number;
+    body: string;
+    latency: number;
+}
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
@@ -18,7 +26,9 @@ export default function Dashboard() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<Partial<CreateEndpointRequest>>({});
 
-    // Завантажити список ендпоінтів
+    const [testResult, setTestResult] = useState<TestResult | null>(null);
+    const [testingId, setTestingId] = useState<string | null>(null);
+
     const loadEndpoints = async () => {
         try {
             setIsLoading(true);
@@ -36,20 +46,18 @@ export default function Dashboard() {
         loadEndpoints();
     }, []);
 
-    // Створити новий ендпоінт
     const handleCreate = async (data: CreateEndpointRequest) => {
         try {
             const response = await endpointsApi.create(data);
             setEndpoints((prev) => [response.data, ...prev]);
             addToast('Ендпоінт створено', 'success');
-            setIsCreateModalOpen(false);
+            return response.data;
         } catch (error) {
             addToast('Помилка при створенні', 'error');
             console.error(error);
         }
     };
 
-    // Видалити ендпоінт
     const handleDelete = async () => {
         if (!selectedId) return;
         try {
@@ -64,13 +72,11 @@ export default function Dashboard() {
         }
     };
 
-    // Копіювати URL
     const handleCopyUrl = (url: string) => {
         navigator.clipboard.writeText(url);
         addToast('URL скопійовано', 'success');
     };
 
-    // Відкрити форму редагування
     const handleEditOpen = (endpoint: MockEndpoint) => {
         setEditingId(endpoint.id);
         setEditForm({
@@ -83,7 +89,6 @@ export default function Dashboard() {
         });
     };
 
-    // Зберегти зміни
     const handleSave = async () => {
         if (!editingId) return;
         try {
@@ -99,13 +104,18 @@ export default function Dashboard() {
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <p className="text-slate-500">Завантаження...</p>
-            </div>
-        );
-    }
+    const handleTest = async (endpoint: MockEndpoint) => {
+        setTestingId(endpoint.id);
+        try {
+            const result = await endpointsApi.test(endpoint);
+            setTestResult(result);
+        } catch (error) {
+            addToast('Помилка виклику mock', 'error');
+            console.error(error);
+        } finally {
+            setTestingId(null);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -142,11 +152,11 @@ export default function Dashboard() {
                     </button>
                 </div>
 
-                {/* Таблиця */}
-                {endpoints.length === 0 ? (
-                    <div className="bg-white rounded-lg p-8 text-center border border-slate-200">
-                        <p className="text-slate-400">Ендпоінтів не знайдено</p>
-                    </div>
+                {/* Стан: завантаження / порожньо / таблиця */}
+                {isLoading ? (
+                    <TableSkeleton rows={4} />
+                ) : endpoints.length === 0 ? (
+                    <EmptyState onCreate={() => setIsCreateModalOpen(true)} />
                 ) : (
                     <div className="bg-white rounded-lg overflow-hidden shadow-sm border border-slate-200">
                         <table className="w-full">
@@ -241,6 +251,14 @@ export default function Dashboard() {
                                             ) : (
                                                 <>
                                                     <button
+                                                        onClick={() => handleTest(endpoint)}
+                                                        disabled={testingId === endpoint.id}
+                                                        className="px-2 py-1 text-xs bg-purple-200 text-purple-700 rounded hover:bg-purple-300 transition disabled:opacity-50"
+                                                        title="Тестувати"
+                                                    >
+                                                        {testingId === endpoint.id ? '...' : '▶ Тест'}
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleCopyUrl(endpoint.fullUrl)}
                                                         className="px-2 py-1 text-xs bg-slate-200 text-slate-700 rounded hover:bg-slate-300 transition"
                                                         title="Копіювати URL"
@@ -287,7 +305,7 @@ export default function Dashboard() {
             <Modal
                 isOpen={isModalOpen}
                 title="Видалити ендпоінт?"
-                message="Ця дія не може бути скасована. Ендпоінт буде видален назавжди."
+                message="Ця дія не може бути скасована. Ендпоінт буде видалено назавжди."
                 confirmText="Видалити"
                 cancelText="Скасувати"
                 isDangerous={true}
@@ -297,6 +315,48 @@ export default function Dashboard() {
                     setSelectedId(null);
                 }}
             />
+
+            {/* Модаль результату тесту */}
+            {testResult && (
+                <div
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                    onClick={() => setTestResult(null)}
+                >
+                    <div
+                        className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-slate-800">Результат тесту</h2>
+                            <div className="flex items-center gap-2 text-sm">
+                                <span
+                                    className={`px-2 py-1 rounded font-semibold ${
+                                        testResult.status >= 200 && testResult.status < 300
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-red-100 text-red-700'
+                                    }`}
+                                >
+                                    {testResult.status}
+                                </span>
+                                <span className="text-slate-400">{testResult.latency} ms</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-900 rounded p-3 mb-4 max-h-64 overflow-auto">
+                            <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
+                                {testResult.body || '(порожня відповідь)'}
+                            </pre>
+                        </div>
+
+                        <button
+                            onClick={() => setTestResult(null)}
+                            className="w-full px-4 py-2 text-sm bg-slate-800 text-white rounded hover:bg-slate-900 transition"
+                        >
+                            Закрити
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

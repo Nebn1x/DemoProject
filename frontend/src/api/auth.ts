@@ -11,3 +11,4 @@ export const authApi = {
     me: () =>
         api.get('/api/v1/auth/me').then((r) => r.data),
 };
+
