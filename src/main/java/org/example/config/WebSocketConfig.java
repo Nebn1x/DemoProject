@@ -24,6 +24,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // SockJS у Vite dev-проксі ламається на HTTP-фолбек запитах (info/xhr_streaming),
+        //сирий WS як основний, SockJS - як запасний.
+        registry.addEndpoint("/ws/logs")
+                .setAllowedOrigins("*");
+
         registry.addEndpoint("/ws/logs")
                 .setAllowedOrigins("*")
                 .withSockJS();

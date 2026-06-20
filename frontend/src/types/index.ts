@@ -60,5 +60,13 @@ export interface ApiError {
     details?: Record<string, string>;
 }
 
-// UpdateEndpointRequest для PUT запитів
 export interface UpdateEndpointRequest extends Partial<CreateEndpointRequest> {}
+
+export interface RequestLog {
+    id: string;
+    method: string;
+    path: string;
+    status: number;
+    latencyMs: number;
+    timestamp: string;
+}

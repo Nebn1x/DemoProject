@@ -5,6 +5,7 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import EndpointDetail from './pages/EndpointDetail';
 
 function App() {
     return (
@@ -16,6 +17,7 @@ function App() {
                         <Route path="/register" element={<Register />} />
                         <Route element={<ProtectedRoute />}>
                             <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/endpoints/:id" element={<EndpointDetail />} />
                             <Route path="/" element={<Dashboard />} />
                         </Route>
                         {/* невідомі шляхи - на головну (щоб не було білих сторінок) */}

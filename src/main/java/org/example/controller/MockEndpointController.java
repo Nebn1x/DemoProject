@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.dto.endpoint.CreateEndpointRequest;
 import org.example.dto.endpoint.EndpointResponse;
 import org.example.dto.endpoint.UpdateEndpointRequest;
+import org.example.dto.logs.RequestLogDto;
 import org.example.security.UserPrincipal;
 import org.example.service.MockEndpointService;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,20 @@ public class MockEndpointController {
             @PathVariable UUID id
     ) {
         return ResponseEntity.ok(endpointService.getById(principal.getId(), id));
+    }
+
+    /**
+     * Останні запити до ендпоінта (для сторінки деталей /endpoints/:id).
+     * Початкове завантаження сторінки + "сторінка N" пагінація;
+     * нові логи в реальному часі приходять окремо через WebSocket /topic/logs/{id}.
+     */
+    @GetMapping("/{id}/logs")
+    public ResponseEntity<Page<RequestLogDto>> getLogs(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(endpointService.getLogs(principal.getId(), id, pageable));
     }
 
     @PutMapping("/{id}")

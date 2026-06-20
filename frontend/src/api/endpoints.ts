@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { MockEndpoint, CreateEndpointRequest, Page } from '../types';
+import type { MockEndpoint, CreateEndpointRequest, Page, RequestLog } from '../types';
 
 export const endpointsApi = {
     // Отримати всі ендпоінти
@@ -11,6 +11,12 @@ export const endpointsApi = {
     // Отримати один ендпоінт
     getById: (id: string) =>
         api.get<MockEndpoint>(`/api/v1/endpoints/${id}`),
+
+    // Отримати останні запити (логи) для ендпоінта, пагіновано
+    getLogs: (id: string, page = 0, size = 20) =>
+        api.get<Page<RequestLog>>(`/api/v1/endpoints/${id}/logs`, {
+            params: { page, size, sort: 'timestamp,desc' },
+        }),
 
     // Створити новий
     create: (data: CreateEndpointRequest) =>

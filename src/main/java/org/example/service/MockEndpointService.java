@@ -5,11 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.dto.endpoint.CreateEndpointRequest;
 import org.example.dto.endpoint.EndpointResponse;
 import org.example.dto.endpoint.UpdateEndpointRequest;
+import org.example.dto.logs.RequestLogDto;
 import org.example.entity.MockEndpoint;
 import org.example.entity.User;
 import org.example.exception.EndpointAlreadyExistsException;
 import org.example.exception.EndpointNotFoundException;
 import org.example.repository.MockEndpointRepository;
+import org.example.repository.RequestLogRepository;
 import org.example.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
@@ -28,6 +30,7 @@ public class MockEndpointService {
 
     private final MockEndpointRepository endpointRepository;
     private final UserRepository userRepository;
+    private final RequestLogRepository requestLogRepository;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -73,6 +76,18 @@ public class MockEndpointService {
     public EndpointResponse getById(UUID userId, UUID endpointId) {
         MockEndpoint endpoint = findOwnedEndpoint(userId, endpointId);
         return EndpointResponse.from(endpoint, baseUrl);
+    }
+
+    /**
+     * Останні логи запитів для конкретного ендпоінта (пагіновано, найновіші перші).
+     * Перевіряє, що ендпоінт належить користувачу, перш ніж віддати логи.
+     */
+    @Transactional(readOnly = true)
+    public Page<RequestLogDto> getLogs(UUID userId, UUID endpointId, Pageable pageable) {
+        findOwnedEndpoint(userId, endpointId); // перевірка власника / 404
+        return requestLogRepository
+                .findByEndpoint_IdOrderByTimestampDesc(endpointId, pageable)
+                .map(RequestLogDto::from);
     }
 
     @CacheEvict(value = "mock-endpoints", allEntries = true)

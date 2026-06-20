@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { endpointsApi } from '../api/endpoints';
 import type { MockEndpoint, CreateEndpointRequest } from '../types';
@@ -17,6 +18,7 @@ interface TestResult {
 export default function Dashboard() {
     const { user, logout } = useAuth();
     const { addToast } = useToast();
+    const navigate = useNavigate();
 
     const [endpoints, setEndpoints] = useState<MockEndpoint[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -250,6 +252,13 @@ export default function Dashboard() {
                                                 </>
                                             ) : (
                                                 <>
+                                                    <button
+                                                        onClick={() => navigate(`/endpoints/${endpoint.id}`)}
+                                                        className="px-2 py-1 text-xs bg-slate-800 text-white rounded hover:bg-slate-900 transition"
+                                                        title="Деталі та логи"
+                                                    >
+                                                        🔍 Деталі
+                                                    </button>
                                                     <button
                                                         onClick={() => handleTest(endpoint)}
                                                         disabled={testingId === endpoint.id}

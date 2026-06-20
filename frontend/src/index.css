@@ -8,3 +8,20 @@ body {
   margin: 0;
   background-color: #f8fafc;
 }
+
+@keyframes log-row-in {
+  0% {
+    background-color: rgb(220 252 231);
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  100% {
+    background-color: transparent;
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-log-row-in {
+  animation: log-row-in 1.2s ease-out;
+}
