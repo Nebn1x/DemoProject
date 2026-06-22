@@ -21,8 +21,7 @@ import java.util.function.Supplier;
 /**
  * Rate limiting через Bucket4j + Redis.
  * Підключення до Redis - ЛІНИВЕ (при першому виклику), а не в @PostConstruct.
- * Тому бін створюється завжди, але до Redis лізе тільки якщо rate-limit реально
- * використовується. У тестах (enabled=false) Redis не чіпається взагалі.
+ * Підтримує TLS (для AWS ElastiCache) через прапорець spring.data.redis.ssl.enabled.
  */
 @Service
 @RequiredArgsConstructor
@@ -36,17 +35,20 @@ public class RateLimitService {
     @Value("${spring.data.redis.port:6379}")
     private int redisPort;
 
+    // TLS: на AWS ElastiCache = true (rediss://), локально = false (redis://)
+    @Value("${spring.data.redis.ssl.enabled:false}")
+    private boolean redisSsl;
+
     private volatile ProxyManager<String> proxyManager;
 
     public record RateLimitResult(boolean allowed, long retryAfterSeconds, long remaining) {}
 
     public RateLimitResult checkLimits(String userHash, String endpointKey) {
-        // якщо rate-limit вимкнено - навіть не торкаємось Redis
         if (!props.isEnabled()) {
             return new RateLimitResult(true, 0, Long.MAX_VALUE);
         }
 
-        ProxyManager<String> pm = getProxyManager(); // ліниве підключення
+        ProxyManager<String> pm = getProxyManager();
 
         var userBucket = pm.builder()
                 .build("rl:user:" + userHash, bucketConfig(props.getPerUserPerMinute()));
@@ -67,10 +69,6 @@ public class RateLimitService {
         return new RateLimitResult(true, 0, epProbe.getRemainingTokens());
     }
 
-    /**
-     * Ліниве створення ProxyManager - тільки при першому реальному виклику.
-     * double-checked locking для потокобезпечності.
-     */
     private ProxyManager<String> getProxyManager() {
         if (proxyManager == null) {
             synchronized (this) {
@@ -84,8 +82,10 @@ public class RateLimitService {
 
     @SuppressWarnings("deprecation")
     private ProxyManager<String> createProxyManager() {
+        // rediss:// для TLS (AWS ElastiCache), redis:// для звичайного (локально)
+        String scheme = redisSsl ? "rediss://" : "redis://";
         RedisClient redisClient = RedisClient.create(
-                "redis://" + redisHost + ":" + redisPort);
+                scheme + redisHost + ":" + redisPort);
         RedisCodec<String, byte[]> codec = RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE);
         StatefulRedisConnection<String, byte[]> connection = redisClient.connect(codec);
 

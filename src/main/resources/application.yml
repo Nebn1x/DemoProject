@@ -2,7 +2,7 @@ spring:
   application:
     name: mock-it-backend
 
-  # PostgreSQL - адреса/креди через env (для AWS RDS), з дефолтом для локалки
+  # PostgreSQL - через env (AWS RDS), з дефолтом для локалки
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mockit}
     username: ${DB_USERNAME:mockit}
@@ -31,11 +31,15 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     default-schema: public
 
+  # Redis - через env (AWS ElastiCache), з підтримкою TLS
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      timeout: 2000ms
+      timeout: 5000ms
+      # SSL/TLS - вмикається на AWS (REDIS_SSL=true), локально вимкнено
+      ssl:
+        enabled: ${REDIS_SSL:false}
       lettuce:
         pool:
           max-active: 8
@@ -74,7 +78,6 @@ app:
     per-endpoint-per-minute: 60
     per-user-per-minute: 1000
   jwt:
-    # Дефолт - тільки для локалки
     secret: ${JWT_SECRET:change-me-in-production-this-must-be-at-least-256-bits-long-secret-key}
     expiration-ms: 86400000
   mock:
