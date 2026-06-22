@@ -20,6 +20,9 @@ const initialForm: CreateEndpointRequest = {
 
 export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: CreateEndpointModalProps) {
     const [form, setForm] = useState<CreateEndpointRequest>(initialForm);
+    // статус і затримку тримаємо як рядки - щоб можна було стирати/вводити вільно
+    const [statusInput, setStatusInput] = useState('200');
+    const [delayInput, setDelayInput] = useState('0');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [createdUrl, setCreatedUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
@@ -47,7 +50,13 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const result = await onSubmit(form);
+            // перетворюємо рядки на числа при відправці (з безпечними дефолтами)
+            const payload: CreateEndpointRequest = {
+                ...form,
+                responseStatus: parseInt(statusInput) || 200,
+                delayMs: parseInt(delayInput) || 0,
+            };
+            const result = await onSubmit(payload);
             if (result && 'fullUrl' in result) {
                 setCreatedUrl(result.fullUrl);
             } else {
@@ -60,6 +69,8 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
 
     const handleClose = () => {
         setForm(initialForm);
+        setStatusInput('200');
+        setDelayInput('0');
         setCreatedUrl(null);
         setCopied(false);
         onClose();
@@ -140,11 +151,33 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
                         <div className="flex-1">
                             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Статус</label>
                             <input
-                                type="number"
-                                value={form.responseStatus}
-                                onChange={(e) => setForm({ ...form, responseStatus: parseInt(e.target.value) || 200 })}
+                                type="text"
+                                inputMode="numeric"
+                                list="status-codes"
+                                value={statusInput}
+                                onChange={(e) => setStatusInput(e.target.value)}
+                                placeholder="200"
                                 className="w-full px-2 py-2 border border-slate-300 rounded text-sm"
                             />
+                            <datalist id="status-codes">
+                                <option value="200">200 OK</option>
+                                <option value="201">201 Created</option>
+                                <option value="202">202 Accepted</option>
+                                <option value="204">204 No Content</option>
+                                <option value="301">301 Moved Permanently</option>
+                                <option value="302">302 Found</option>
+                                <option value="304">304 Not Modified</option>
+                                <option value="400">400 Bad Request</option>
+                                <option value="401">401 Unauthorized</option>
+                                <option value="403">403 Forbidden</option>
+                                <option value="404">404 Not Found</option>
+                                <option value="409">409 Conflict</option>
+                                <option value="422">422 Unprocessable Entity</option>
+                                <option value="429">429 Too Many Requests</option>
+                                <option value="500">500 Internal Server Error</option>
+                                <option value="502">502 Bad Gateway</option>
+                                <option value="503">503 Service Unavailable</option>
+                            </datalist>
                         </div>
                     </div>
 
@@ -179,9 +212,11 @@ export default function CreateEndpointModal({ isOpen, onClose, onSubmit }: Creat
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Затримка (мс)</label>
                         <input
-                            type="number"
-                            value={form.delayMs}
-                            onChange={(e) => setForm({ ...form, delayMs: parseInt(e.target.value) || 0 })}
+                            type="text"
+                            inputMode="numeric"
+                            value={delayInput}
+                            onChange={(e) => setDelayInput(e.target.value)}
+                            placeholder="0"
                             className="w-full px-2 py-2 border border-slate-300 rounded text-sm"
                         />
                     </div>

@@ -2,11 +2,11 @@ spring:
   application:
     name: mock-it-backend
 
-  # PostgreSQL
+  # PostgreSQL - адреса/креди через env (для AWS RDS), з дефолтом для локалки
   datasource:
-    url: jdbc:postgresql://localhost:5432/mockit
-    username: mockit
-    password: mockit_password
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mockit}
+    username: ${DB_USERNAME:mockit}
+    password: ${DB_PASSWORD:mockit_password}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -31,11 +31,10 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     default-schema: public
 
-  # Redis
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       timeout: 2000ms
       lettuce:
         pool:
@@ -44,7 +43,7 @@ spring:
           min-idle: 2
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   error:
     include-message: always
     include-binding-errors: always
@@ -61,21 +60,22 @@ management:
 logging:
   level:
     root: INFO
-    org.example: DEBUG
+    org.example: ${LOG_LEVEL:DEBUG}
     org.springframework.web: INFO
     liquibase: INFO
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:DEBUG}
   pattern:
     console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
 
 app:
-  base-url: http://localhost:8080
+  base-url: ${APP_BASE_URL:http://localhost:8080}
   rate-limit:
-    enabled: true
+    enabled: ${RATE_LIMIT_ENABLED:true}
     per-endpoint-per-minute: 60
     per-user-per-minute: 1000
   jwt:
-    secret: change-me-in-production-this-must-be-at-least-256-bits-long-secret-key
+    # Дефолт - тільки для локалки
+    secret: ${JWT_SECRET:change-me-in-production-this-must-be-at-least-256-bits-long-secret-key}
     expiration-ms: 86400000
   mock:
     max-body-size-kb: 1024
