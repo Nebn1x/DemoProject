@@ -2,8 +2,13 @@ import axios from 'axios';
 
 const TOKEN_KEY = 'mockit_token';
 
-// базовий клієнт (baseURL не треба - проксі Vite веде /api на бекенд)
+// База API: на проді (S3) береться з VITE_API_URL (адреса бекенду на AWS),
+// локально порожня - працює проксі Vite (/api -> localhost:8080)
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+// базовий клієнт
 export const api = axios.create({
+    baseURL: API_BASE,
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -29,7 +34,6 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             tokenStorage.clear();
-            // редірект на логін, якщо ще не там
             if (window.location.pathname !== '/login') {
                 window.location.href = '/login';
             }

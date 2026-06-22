@@ -100,8 +100,16 @@ export function useEndpointLogs(endpointId: string | undefined): UseEndpointLogs
         const token = tokenStorage.get();
         setStatus('connecting');
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const brokerURL = `${protocol}//${window.location.host}/ws/logs`;
+        // на проді (S3) WebSocket йде на бекенд AWS (VITE_WS_URL),
+        // локально - на той самий хост (працює проксі Vite)
+        const wsBase = import.meta.env.VITE_WS_URL;
+        let brokerURL: string;
+        if (wsBase) {
+            brokerURL = `${wsBase}/ws/logs`;
+        } else {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            brokerURL = `${protocol}//${window.location.host}/ws/logs`;
+        }
 
         const client = new Client({
             brokerURL,

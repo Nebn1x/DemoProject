@@ -2,7 +2,7 @@ spring:
   application:
     name: mock-it-backend
 
-  # PostgreSQL - через env (AWS RDS), з дефолтом для локалки
+  # PostgreSQL - через .env (AWS RDS), з дефолтом для локалки
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mockit}
     username: ${DB_USERNAME:mockit}
@@ -31,7 +31,7 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     default-schema: public
 
-  # Redis - через env (AWS ElastiCache), з підтримкою TLS
+  # Redis - через .env (AWS ElastiCache), з підтримкою TLS
   data:
     redis:
       host: ${REDIS_HOST:localhost}
